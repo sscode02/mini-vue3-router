@@ -18,8 +18,8 @@ export type PathParseOptions = {
 export function createRouter(options: RouterOptions) {
     const matcher = createRouterMatcher(options.routers, options as PathParseOptions)
 
-    const install = () => {
-
+    const install = (ctx) => {
+        console.log(ctx)
     }
 
     return {
@@ -29,7 +29,7 @@ export function createRouter(options: RouterOptions) {
 
 
 export function createRouterMatcher(routers: Readonly<routeRecordRaw[]>, globalOptions: PathParseOptions) {
-    const matchers = []
+    const matchers: any[] = []
 
     globalOptions = mergeOptions(
         { end: true, strict: false, sensitive: false } as PathParseOptions,
@@ -48,16 +48,21 @@ export function createRouterMatcher(routers: Readonly<routeRecordRaw[]>, globalO
 
         for (const normalizedRecord of normalizRecords) {
             matcher = createRouteRecordMatcher(normalizedRecord, options)
-            originalMatcher = originalMatcher
-            inserMatcher(matcher)
+            originalMatcher = originalMatcher || matcher
+            insertMatcher(matcher)
         }
+
+        return originalMatcher
     }
 
-    function inserMatcher(matcher: any) {
+    function insertMatcher(matcher: any) {
         matchers.push(matcher)
     }
 
     routers.forEach(route => addRoute(route))
+
+
+    return matchers
 }
 
 
@@ -72,7 +77,6 @@ function createRouteRecordMatcher(record: any, options: any) {
 
     const matcher = Object.assign(parser, { record, children: [], alias: [] })
     return matcher
-
 }
 
 

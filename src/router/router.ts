@@ -15,7 +15,7 @@ const routers = [
 ]
 
 
-const router = createRouter({
+export const router = createRouter({
     history: createWebHistory(),
     routers
 })

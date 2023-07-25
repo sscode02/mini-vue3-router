@@ -4,6 +4,7 @@
 
 <template>
   <div>template A</div>
+  <ComponentB />
 </template>
 
 <style scoped>
