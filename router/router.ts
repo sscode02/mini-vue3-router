@@ -1,3 +1,8 @@
+import RouterLink from './router/RouterLink'
+import RouterView from './router/RouterView'
+import { routerLocationKey, routerKey } from './injectSymbols'
+import { reactive, ref, shallowRef } from 'vue'
+
 export interface RouterOptions {
     history: any,
     routers: any[]
@@ -16,16 +21,48 @@ export type PathParseOptions = {
 
 export function createRouter(options: RouterOptions) {
     const matcher = createRouterMatcher(options.routers, options as PathParseOptions)
-    const routerHistory = options.history
+    // const routerHistory = options.history
 
-    const push = (to: string) => { }
-    const install = (ctx: any) => {
-        // console.log(ctx)
+    const currentRoute = shallowRef({ matched: [] })
+
+    const push = (to: string, options: any) => {
+        // get temp 
+        // const targetLocation: RouteLocation = (pendingLocation = resolve(to)) // 找到目标component
+        // const from = currentRoute.value //从哪里来
+        // const data: HistoryState | undefined = (to as RouteLocationOptions).state // 携带的sate
+        if (options.replace) {
+            window.history.replaceState({}, '', to)
+        }
+
+        const matched = resolve(to)
+        currentRoute.value = { matched: matched }
     }
 
-    return {
-        install
+    const replace = (to: string) => {
+        push(to, { replace: true })
     }
+
+    // 去matcher 中找到匹配的component
+    const resolve = (to: string) => {
+        const matched = matcher.resolve(to)
+        return matched
+    }
+
+
+    const router = {
+        replace,
+        push,
+        install(app: any) {
+            const router = this
+            app.component('RouterLink', RouterLink)
+            app.component('RouterView', RouterView)
+
+            app.provide(routerLocationKey, currentRoute)
+            app.provide(routerKey, router)
+        }
+    }
+
+    return router
 }
 
 export function createRouterMatcher(routers: Readonly<routeRecordRaw[]>, globalOptions: PathParseOptions) {
@@ -52,11 +89,26 @@ export function createRouterMatcher(routers: Readonly<routeRecordRaw[]>, globalO
         return originalMatcher
     }
 
+    function resolve(location: string) {
+        let matched: any
+
+        matched = matchers.filter(i => {
+            return i.record.path === location
+        })
+
+        return matched
+        // return matched 
+    }
+
+    function getRouters() {
+        return matchers
+    }
+
     function insertMatcher(matcher: any) {
         matchers.push(matcher)
     }
     routers.forEach(route => addRoute(route))
-    return matchers
+    return { addRoute, resolve, getRouters }
 }
 
 
@@ -87,4 +139,12 @@ function mergeOptions<T extends object>(defaults: T, partialOptions: Partial<T>)
     }
     return options
 }
+
+function runGuardQueue(guards: any[]) {
+    return guards.reduce(
+        (promise, guard) => promise.then(() => { guard }),
+        Promise.resolve()
+    )
+}
+
 
